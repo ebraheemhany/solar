@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GIS Smart Solar Energy Management & Decision Support System — El Shorouk City</title>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<style>
+/* ===== DESIGN TOKENS ===== */
+:root {
+  --solar-gold:   #F5A623;
+  --solar-amber:  #FF6B35;
+  --grid-green:   #00E5A0;
+  --sky-blue:     #00BFFF;
+  --deep-blue:    #0A1628;
+  --panel-dark:   #0D1F3C;
+  --card-bg:      rgba(13,31,60,0.72);
+  --glass-border: rgba(0,191,255,0.18);
+  --text-primary: #E8F4FD;
+  --text-muted:   #7A9BBF;
+  --radius:       14px;
+  --radius-sm:    8px;
+  --transition:   0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--deep-blue);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--deep-blue); }
+::-webkit-scrollbar-thumb { background: var(--sky-blue); border-radius: 4px; }
+
+/* ===== GLASS CARD ===== */
+.glass {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+}
+
+/* =========================================
+   LANDING PAGE
+   ========================================= */
+#landing { position: relative; min-height: 100vh; overflow: hidden; }
+
+/* ---- animated GIS map background ---- */
+#bg-map {
+  position: absolute; inset: 0; z-index: 0;
+  background: #061020;
+}
+#bg-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+}
+
+/* ---- NAV ---- */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 3rem;
+  background: rgba(6,16,32,0.82);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--glass-border);
+}
+.nav-logo { display: flex; align-items: center; gap: .6rem; }
+.nav-logo .logo-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--solar-gold), var(--solar-amber));
+  display: grid; place-items: center; font-size: 1.1rem;
+}
+.nav-logo span { font-size: 1rem; font-weight: 700; letter-spacing: -.3px; }
+.nav-logo span em { color: var(--solar-gold); font-style: normal; }
+.nav-links { display: flex; gap: 2rem; list-style: none; }
+.nav-links a { color: var(--text-muted); text-decoration: none; font-size: .875rem; font-weight: 500; transition: color var(--transition); }
+.nav-links a:hover { color: var(--sky-blue); }
+.nav-cta {
+  padding: .5rem 1.4rem; border-radius: 50px;
+  background: linear-gradient(135deg, var(--sky-blue), var(--grid-green));
+  color: var(--deep-blue); font-weight: 700; font-size: .85rem;
+  border: none; cursor: pointer; text-decoration: none;
+  transition: opacity var(--transition);
+}
+.nav-cta:hover { opacity: .85; }
+
+/* ---- HERO ---- */
+.hero {
+  position: relative; z-index: 10;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 8rem 2rem 4rem;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .4rem 1.2rem; border-radius: 50px;
+  background: rgba(0,191,255,.1); border: 1px solid rgba(0,191,255,.3);
+  font-size: .8rem; font-weight: 600; color: var(--sky-blue); letter-spacing: .08em;
+  text-transform: uppercase; margin-bottom: 1.8rem;
+  animation: fadeUp .8s ease forwards;
+}
+.hero-badge i { font-size: .7rem; }
+
+.hero h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 700; line-height: 1.15;
+  max-width: 900px; margin-bottom: 1.2rem;
+  animation: fadeUp .8s ease .1s forwards; opacity: 0;
+}
+.hero h1 .accent-gold  { color: var(--solar-gold); }
+.hero h1 .accent-green { color: var(--grid-green); }
+
+.hero p {
+  max-width: 620px; font-size: 1.05rem; color: var(--text-muted);
+  line-height: 1.7; margin-bottom: 2.5rem;
+  animation: fadeUp .8s ease .2s forwards; opacity: 0;
+}
+
+.hero-actions {
+  display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
+  animation: fadeUp .8s ease .3s forwards; opacity: 0;
+}
+.btn-primary {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .85rem 2rem; border-radius: 50px;
+  background: linear-gradient(135deg, var(--solar-gold), var(--solar-amber));
+  color: #fff; font-weight: 700; font-size: .95rem;
+  border: none; cursor: pointer; text-decoration: none;
+  box-shadow: 0 0 30px rgba(245,166,35,.3);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(245,166,35,.5); }
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .85rem 2rem; border-radius: 50px;
+  background: rgba(0,191,255,.1); border: 1px solid rgba(0,191,255,.35);
+  color: var(--sky-blue); font-weight: 700; font-size: .95rem;
+  cursor: pointer; text-decoration: none;
+  transition: background var(--transition);
+}
+.btn-secondary:hover { background: rgba(0,191,255,.2); }
+
+/* ---- STATS BAR ---- */
+.stats-bar {
+  position: relative; z-index: 10;
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 1px; background: var(--glass-border);
+  border-top: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
+  margin: 0; padding: 0;
+}
+.stat-item {
+  background: rgba(6,16,32,.85);
+  backdrop-filter: blur(10px);
+  padding: 1.8rem 2rem; text-align: center;
+}
+.stat-num { font-size: 2.2rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.stat-num.gold  { color: var(--solar-gold); }
+.stat-num.green { color: var(--grid-green); }
+.stat-num.blue  { color: var(--sky-blue); }
+.stat-num.amber { color: var(--solar-amber); }
+.stat-label { font-size: .8rem; color: var(--text-muted); margin-top: .3rem; letter-spacing: .05em; text-transform: uppercase; }
+
+/* ---- TECH SECTION ---- */
+.section { padding: 5rem 3rem; }
+.section-header { text-align: center; margin-bottom: 3rem; }
+.section-eyebrow { font-size: .78rem; letter-spacing: .15em; text-transform: uppercase; color: var(--solar-gold); margin-bottom: .8rem; }
+.section-title { font-size: clamp(1.6rem,3vw,2.4rem); font-weight: 700; }
+.section-title span { color: var(--sky-blue); }
+
+.tech-grid {
+  display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 1.2rem;
+  max-width: 1200px; margin: 0 auto;
+}
+.tech-card {
+  padding: 1.8rem 1.4rem; text-align: center;
+  transition: transform var(--transition), border-color var(--transition);
+  cursor: default;
+}
+.tech-card:hover { transform: translateY(-4px); border-color: var(--solar-gold); }
+.tech-card .tech-icon {
+  width: 56px; height: 56px; border-radius: 14px; margin: 0 auto 1rem;
+  display: grid; place-items: center; font-size: 1.4rem;
+}
+.tech-card h3 { font-size: .95rem; font-weight: 600; margin-bottom: .4rem; }
+.tech-card p  { font-size: .78rem; color: var(--text-muted); line-height: 1.5; }
+
+/* ---- TEAM SECTION ---- */
+.team-grid {
+  display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 1.4rem;
+  max-width: 1000px; margin: 0 auto;
+}
+.team-card { padding: 2rem 1.4rem; text-align: center; }
+.team-avatar {
+  width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 1rem;
+  background: linear-gradient(135deg, var(--sky-blue), var(--grid-green));
+  display: grid; place-items: center; font-size: 1.6rem; font-weight: 700; color: var(--deep-blue);
+}
+.team-name  { font-weight: 600; font-size: .95rem; margin-bottom: .3rem; }
+.team-role  { font-size: .78rem; color: var(--solar-gold); }
+
+/* ---- FOOTER ---- */
+footer {
+  background: rgba(6,16,32,.95); border-top: 1px solid var(--glass-border);
+  padding: 2.5rem 3rem; text-align: center;
+}
+footer p { color: var(--text-muted); font-size: .82rem; }
+footer p a { color: var(--sky-blue); text-decoration: none; }
+
+/* =========================================
+   DASHBOARD
+   ========================================= */
+#dashboard { display: none; height: 100vh; overflow: hidden; }
+
+/* ---- SIDEBAR ---- */
+.sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0; width: 240px; z-index: 500;
+  background: rgba(6,16,32,.97);
+  border-right: 1px solid var(--glass-border);
+  display: flex; flex-direction: column; padding: 1.2rem 0;
+}
+.sidebar-logo {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .8rem 1.4rem 1.4rem; border-bottom: 1px solid var(--glass-border);
+}
+.sidebar-logo .logo-icon {
+  width: 32px; height: 32px; border-radius: 7px;
+  background: linear-gradient(135deg, var(--solar-gold), var(--solar-amber));
+  display: grid; place-items: center; font-size: .9rem; flex-shrink: 0;
+}
+.sidebar-logo span { font-size: .82rem; font-weight: 700; line-height: 1.3; }
+.sidebar-logo span em { color: var(--solar-gold); font-style: normal; display: block; }
+
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 1rem 0; }
+.nav-group-label {
+  font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted);
+  padding: .8rem 1.4rem .3rem;
+}
+.sidebar-link {
+  display: flex; align-items: center; gap: .8rem;
+  padding: .65rem 1.4rem; text-decoration: none; color: var(--text-muted);
+  font-size: .83rem; font-weight: 500; transition: all var(--transition);
+  border-left: 3px solid transparent; cursor: pointer;
+}
+.sidebar-link:hover, .sidebar-link.active {
+  color: var(--sky-blue); background: rgba(0,191,255,.07); border-left-color: var(--sky-blue);
+}
+.sidebar-link .badge {
+  margin-left: auto; background: var(--grid-green); color: var(--deep-blue);
+  font-size: .65rem; font-weight: 700; padding: .1rem .45rem; border-radius: 10px;
+}
+
+/* status dot */
+.sidebar-footer {
+  padding: 1rem 1.4rem; border-top: 1px solid var(--glass-border);
+}
+.live-dot {
+  display: inline-flex; align-items: center; gap: .5rem; font-size: .75rem; color: var(--grid-green);
+}
+.live-dot::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--grid-green);
+  animation: pulse 1.5s infinite;
+}
+
+/* ---- TOPBAR ---- */
+.topbar {
+  position: fixed; left: 240px; right: 0; top: 0; z-index: 400; height: 58px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 1.8rem;
+  background: rgba(6,16,32,.95); border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+}
+.topbar-title { font-size: .92rem; font-weight: 600; }
+.topbar-title span { color: var(--text-muted); font-weight: 400; }
+.topbar-right { display: flex; align-items: center; gap: 1.2rem; }
+.topbar-clock { font-family: 'JetBrains Mono', monospace; font-size: .82rem; color: var(--solar-gold); }
+.topbar-btn {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--glass-border);
+  background: rgba(0,191,255,.08); cursor: pointer; display: grid; place-items: center;
+  color: var(--text-muted); font-size: .85rem; transition: all var(--transition);
+}
+.topbar-btn:hover { color: var(--sky-blue); border-color: var(--sky-blue); }
+.exit-btn {
+  padding: .4rem 1rem; border-radius: 50px;
+  background: rgba(245,166,35,.15); border: 1px solid rgba(245,166,35,.3);
+  color: var(--solar-gold); font-size: .8rem; font-weight: 600; cursor: pointer;
+  transition: background var(--transition);
+}
+.exit-btn:hover { background: rgba(245,166,35,.28); }
+
+/* ---- MAIN CONTENT ---- */
+.main-content {
+  margin-left: 240px; margin-top: 58px;
+  height: calc(100vh - 58px); overflow-y: auto; overflow-x: hidden;
+  padding: 1.4rem;
+}
+
+/* ---- DASHBOARD PANELS ---- */
+.dash-panel { display: none; }
+.dash-panel.active { display: block; }
+
+/* KPI row */
+.kpi-row {
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1.2rem;
+}
+.kpi-card { padding: 1.3rem 1.4rem; position: relative; overflow: hidden; }
+.kpi-card::before {
+  content: ''; position: absolute; top: 0; right: 0;
+  width: 70px; height: 70px; border-radius: 50%;
+  transform: translate(25px,-25px);
+}
+.kpi-card.gold::before  { background: radial-gradient(circle, rgba(245,166,35,.25),transparent 70%); }
+.kpi-card.green::before { background: radial-gradient(circle, rgba(0,229,160,.25),transparent 70%); }
+.kpi-card.blue::before  { background: radial-gradient(circle, rgba(0,191,255,.25),transparent 70%); }
+.kpi-card.amber::before { background: radial-gradient(circle, rgba(255,107,53,.25),transparent 70%); }
+.kpi-label { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; }
+.kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 1.7rem; font-weight: 700; line-height: 1.1; }
+.kpi-card.gold  .kpi-value { color: var(--solar-gold); }
+.kpi-card.green .kpi-value { color: var(--grid-green); }
+.kpi-card.blue  .kpi-value { color: var(--sky-blue); }
+.kpi-card.amber .kpi-value { color: var(--solar-amber); }
+.kpi-sub { font-size: .72rem; color: var(--text-muted); margin-top: .4rem; }
+.kpi-icon { position: absolute; top: 1.2rem; right: 1.2rem; font-size: 1.3rem; opacity: .45; }
+.kpi-card.gold  .kpi-icon { color: var(--solar-gold); }
+.kpi-card.green .kpi-icon { color: var(--grid-green); }
+.kpi-card.blue  .kpi-icon { color: var(--sky-blue); }
+.kpi-card.amber .kpi-icon { color: var(--solar-amber); }
+
+/* two col layout */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; margin-bottom: 1.1rem; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.1rem; margin-bottom: 1.1rem; }
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem; padding-bottom: .8rem; border-bottom: 1px solid var(--glass-border);
+}
+.card-title { font-size: .88rem; font-weight: 600; display: flex; align-items: center; gap: .5rem; }
+.card-title i { color: var(--sky-blue); }
+.card-badge {
+  font-size: .68rem; padding: .2rem .6rem; border-radius: 20px;
+  background: rgba(0,229,160,.15); color: var(--grid-green); font-weight: 600;
+}
+.card-badge.warn { background: rgba(245,166,35,.15); color: var(--solar-gold); }
+
+/* map panel */
+#map-wrap {
+  display: grid; grid-template-columns: 1fr 300px; gap: 1.1rem; margin-bottom: 1.1rem;
+}
+#gis-map { border-radius: var(--radius); height: 440px; }
+.map-sidebar .glass { padding: 1.1rem; height: 100%; }
+
+/* layer toggles */
+.layer-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .5rem 0; border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.layer-toggle:last-child { border: none; }
+.layer-name { font-size: .8rem; display: flex; align-items: center; gap: .5rem; }
+.layer-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.toggle-switch { position: relative; width: 34px; height: 18px; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; cursor: pointer; inset: 0; border-radius: 18px;
+  background: rgba(255,255,255,.1); transition: var(--transition);
+}
+.toggle-slider::before {
+  content: ''; position: absolute; width: 12px; height: 12px; border-radius: 50%;
+  left: 3px; top: 3px; background: white; transition: var(--transition);
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--sky-blue); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+/* charts */
+.chart-wrap { position: relative; height: 200px; }
+
+/* circular progress */
+.metrics-grid {
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1.1rem;
+}
+.metric-card { padding: 1.2rem; text-align: center; }
+.circle-wrap { position: relative; width: 90px; height: 90px; margin: 0 auto .8rem; }
+.circle-wrap svg { transform: rotate(-90deg); }
+.circle-bg { fill: none; stroke: rgba(255,255,255,.07); stroke-width: 7; }
+.circle-fg { fill: none; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset 1.5s ease; }
+.circle-text {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace;
+}
+.circle-pct { font-size: 1.15rem; font-weight: 700; }
+.metric-label { font-size: .75rem; color: var(--text-muted); line-height: 1.4; }
+
+/* monitoring table */
+.monitor-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.monitor-table th {
+  text-align: left; padding: .6rem .9rem; color: var(--text-muted);
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .07em;
+  border-bottom: 1px solid var(--glass-border);
+}
+.monitor-table td {
+  padding: .65rem .9rem; border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.monitor-table tr:last-child td { border: none; }
+.monitor-table tr:hover td { background: rgba(0,191,255,.04); }
+.status-pill {
+  display: inline-block; padding: .18rem .55rem; border-radius: 20px;
+  font-size: .68rem; font-weight: 600;
+}
+.status-pill.active  { background: rgba(0,229,160,.15); color: var(--grid-green); }
+.status-pill.maint   { background: rgba(245,166,35,.15); color: var(--solar-gold); }
+.status-pill.warn    { background: rgba(255,107,53,.15); color: var(--solar-amber); }
+
+/* decision support */
+.decision-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.decision-card { padding: 1.3rem; }
+.decision-card .d-icon {
+  width: 44px; height: 44px; border-radius: 12px; margin-bottom: .9rem;
+  display: grid; place-items: center; font-size: 1.2rem;
+}
+.decision-card h4 { font-size: .9rem; font-weight: 600; margin-bottom: .4rem; }
+.decision-card p  { font-size: .78rem; color: var(--text-muted); line-height: 1.6; margin-bottom: .8rem; }
+.decision-card .d-score {
+  display: flex; align-items: center; gap: .5rem; font-size: .78rem;
+}
+.d-bar { flex: 1; height: 4px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; }
+.d-bar-fill { height: 100%; border-radius: 4px; }
+
+/* simulation panel */
+.sim-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.sim-card { padding: 1.3rem; }
+.sim-card h4 { font-size: .88rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+.sim-card h4 i { color: var(--solar-gold); }
+input[type=range] {
+  width: 100%; accent-color: var(--sky-blue); cursor: pointer; margin: .3rem 0;
+}
+.sim-label { display: flex; justify-content: space-between; font-size: .76rem; color: var(--text-muted); margin-bottom: .2rem; }
+.sim-result {
+  margin-top: 1rem; padding: .9rem; border-radius: var(--radius-sm);
+  background: rgba(0,229,160,.07); border: 1px solid rgba(0,229,160,.15);
+  font-size: .8rem; color: var(--grid-green);
+}
+.run-sim-btn {
+  margin-top: 1rem; width: 100%; padding: .7rem;
+  background: linear-gradient(135deg, var(--sky-blue), var(--grid-green));
+  color: var(--deep-blue); font-weight: 700; font-size: .85rem;
+  border: none; border-radius: var(--radius-sm); cursor: pointer;
+  transition: opacity var(--transition);
+}
+.run-sim-btn:hover { opacity: .85; }
+
+/* =========================================
+   ANIMATIONS
+   ========================================= */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,229,160,.5); }
+  50%      { opacity: .7; box-shadow: 0 0 0 6px rgba(0,229,160,0); }
+}
+@keyframes gridPulse {
+  0%,100% { opacity: .15; }
+  50%      { opacity: .4; }
+}
+@keyframes dataFlow {
+  0%   { stroke-dashoffset: 100; }
+  100% { stroke-dashoffset: 0; }
+}
+
+/* =========================================
+   LEAFLET OVERRIDES
+   ========================================= */
+.leaflet-popup-content-wrapper {
+  background: var(--panel-dark) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 10px !important; color: var(--text-primary) !important;
+  font-family: 'Space Grotesk',sans-serif !important;
+}
+.leaflet-popup-tip { background: var(--panel-dark) !important; }
+.leaflet-control-layers {
+  background: var(--panel-dark) !important; color: var(--text-primary) !important;
+  border: 1px solid var(--glass-border) !important; border-radius: 8px !important;
+}
+.leaflet-bar a {
+  background: var(--panel-dark) !important; color: var(--sky-blue) !important;
+  border-color: var(--glass-border) !important;
+}
+.popup-title { font-weight: 700; font-size: .95rem; color: var(--solar-gold); margin-bottom: .6rem; }
+.popup-row { display: flex; justify-content: space-between; gap: 2rem; font-size: .78rem; padding: .18rem 0; }
+.popup-key { color: var(--text-muted); }
+.popup-val { font-weight: 600; }
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+@media(max-width:900px){
+  .sidebar { width: 60px; }
+  .sidebar-logo span, .sidebar-link span, .nav-group-label, .sidebar-footer { display: none; }
+  .main-content { margin-left: 60px; }
+  .topbar { left: 60px; }
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .two-col, .sim-row, .decision-grid { grid-template-columns: 1fr; }
+  .three-col { grid-template-columns: 1fr 1fr; }
+  #map-wrap { grid-template-columns: 1fr; }
+  .metrics-grid { grid-template-columns: 1fr 1fr; }
+  .stats-bar { grid-template-columns: 1fr 1fr; }
+  nav .nav-links { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ======================= LANDING PAGE ======================= -->
+<section id="landing">
+  <div id="bg-map">
+    <canvas id="bg-canvas"></canvas>
+  </div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">
+      <div class="logo-icon"><i class="fas fa-solar-panel"></i></div>
+      <span>Solar<em>GIS</em></span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#features-section">Features</a></li>
+      <li><a href="#tech-section">Technology</a></li>
+      <li><a href="#team-section">Team</a></li>
+    </ul>
+    <a class="nav-cta" href="#" onclick="openDashboard()">Launch Dashboard</a>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge"><i class="fas fa-satellite-dish"></i> Graduation Project — Ain Shams University · 2025</div>
+    <h1>
+      GIS Smart <span class="accent-gold">Solar Energy</span><br>
+      Management &amp; <span class="accent-green">Decision Support</span><br>
+      System
+    </h1>
+    <p>A geospatial intelligence platform for monitoring, analyzing and planning solar energy infrastructure across El Shorouk City, Egypt — powered by real-time IoT data and spatial analytics.</p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="#" onclick="openDashboard()"><i class="fas fa-tachometer-alt"></i> Open Dashboard</a>
+      <a class="btn-secondary" href="#tech-section"><i class="fas fa-layer-group"></i> Explore Technology</a>
+    </div>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-num gold" data-target="247">0</div>
+      <div class="stat-label">MW Total Capacity</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num green" data-target="18">0</div>
+      <div class="stat-label">Active Solar Stations</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num blue" data-target="89">0</div>
+      <div class="stat-label">% Avg Efficiency</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num amber" data-target="142000">0</div>
+      <div class="stat-label">Tons CO₂ Saved Annually</div>
+    </div>
+  </div>
+
+  <!-- TECH SECTION -->
+  <div id="tech-section" class="section">
+    <div class="section-header">
+      <div class="section-eyebrow">Technology Stack</div>
+      <h2 class="section-title">Built on <span>Cutting-Edge</span> Geospatial Tools</h2>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-card glass">
+        <div class="tech-icon" style="background:rgba(0,191,255,.15)"><i class="fas fa-globe" style="color:var(--sky-blue)"></i></div>
+        <h3>GIS &amp; Spatial Analysis</h3>
+        <p>Leaflet.js interactive maps with spatial querying and geofencing</p>
+      </div>
+      <div class="tech-card glass">
+        <div class="tech-icon" style="background:rgba(245,166,35,.15)"><i class="fas fa-map" style="color:var(--solar-gold)"></i></div>
+        <h3>ArcGIS Online</h3>
+        <p>Enterprise GIS platform for advanced spatial data management</p>
+      </div>
+      <div class="tech-card glass">
+        <div class="tech-icon" style="background:rgba(0,229,160,.15)"><i class="fas fa-satellite" style="color:var(--grid-green)"></i></div>
+        <h3>Remote Sensing</h3>
+        <p>Sentinel-2 &amp; Landsat 8 imagery for solar irradiance mapping</p>
+      </div>
+      <div class="tech-card glass">
+        <div class="tech-icon" style="background:rgba(255,107,53,.15)"><i class="fas fa-chart-line" style="color:var(--solar-amber)"></i></div>
+        <h3>Solar Analytics</h3>
+        <p>Chart.js powered energy production forecasting &amp; trend analysis</p>
+      </div>
+      <div class="tech-card glass">
+        <div class="tech-icon" style="background:rgba(0,191,255,.15)"><i class="fas fa-microchip" style="color:var(--sky-blue)"></i></div>
+        <h3>IoT Monitoring</h3>
+        <p>Real-time sensor data from 3,200+ connected solar panels</p>
+      </div>
+      <div class="tech-card glass">
+        <div class="tech-icon" style="background:rgba(0,229,160,.15)"><i class="fas fa-network-wired" style="color:var(--grid-green)"></i></div>
+        <h3>Smart Grid</h3>
+        <p>SCADA integration for grid load balancing and fault detection</p>
+      </div>
+      <div class="tech-card glass">
+        <div class="tech-icon" style="background:rgba(245,166,35,.15)"><i class="fab fa-react" style="color:var(--solar-gold)"></i></div>
+        <h3>React / Next.js</h3>
+        <p>Modern frontend framework for production-ready deployment</p>
+      </div>
+      <div class="tech-card glass">
+        <div class="tech-icon" style="background:rgba(0,191,255,.15)"><i class="fas fa-database" style="color:var(--sky-blue)"></i></div>
+        <h3>PostgreSQL + PostGIS</h3>
+        <p>Spatial database extension for geographic queries &amp; indexing</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEAM SECTION -->
+  <div id="team-section" class="section" style="padding-top:0">
+    <div class="section-header">
+      <div class="section-eyebrow">Research Team</div>
+      <h2 class="section-title">The <span>Minds</span> Behind the System</h2>
+    </div>
+    <div class="team-grid">
+      <div class="team-card glass">
+        <div class="team-avatar">AM</div>
+        <div class="team-name">Ahmed Mohamed Ali</div>
+        <div class="team-role">GIS Developer &amp; Lead Engineer</div>
+      </div>
+      <div class="team-card glass">
+        <div class="team-avatar">SE</div>
+        <div class="team-name">Sara El-Sayed Hassan</div>
+        <div class="team-role">Remote Sensing Analyst</div>
+      </div>
+      <div class="team-card glass">
+        <div class="team-avatar">KM</div>
+        <div class="team-name">Khaled Mahmoud Fathy</div>
+        <div class="team-role">Solar Energy Specialist</div>
+      </div>
+      <div class="team-card glass">
+        <div class="team-avatar">NY</div>
+        <div class="team-name">Nour Youssef Ibrahim</div>
+        <div class="team-role">Data Science &amp; Analytics</div>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:1.5rem;font-size:.82rem;color:var(--text-muted)">
+      Supervised by <strong style="color:var(--sky-blue)">Dr. Mohamed El-Shafei</strong> · Department of Urban Planning &amp; Environmental Studies, Ain Shams University
+    </p>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>© 2025 GIS Smart Solar Energy Management System — El Shorouk City, Egypt | Ain Shams University Graduation Project</p>
+    <p style="margin-top:.4rem">Built with <i class="fas fa-heart" style="color:var(--solar-amber)"></i> using Leaflet.js · Chart.js · ArcGIS Online</p>
+  </footer>
+</section>
+
+<!-- ======================= DASHBOARD ======================= -->
+<section id="dashboard">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"><i class="fas fa-solar-panel"></i></div>
+      <span>Solar<em>GIS DSS</em></span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-group-label">Monitoring</div>
+      <a class="sidebar-link active" onclick="switchPanel('panel-overview')">
+        <i class="fas fa-th-large"></i><span>Overview</span>
+      </a>
+      <a class="sidebar-link" onclick="switchPanel('panel-map')">
+        <i class="fas fa-map-marked-alt"></i><span>GIS Map</span>
+      </a>
+      <a class="sidebar-link" onclick="switchPanel('panel-live')">
+        <i class="fas fa-broadcast-tower"></i><span>Live Monitor</span><span class="badge">18</span>
+      </a>
+
+      <div class="nav-group-label">Analytics</div>
+      <a class="sidebar-link" onclick="switchPanel('panel-charts')">
+        <i class="fas fa-chart-area"></i><span>Energy Charts</span>
+      </a>
+      <a class="sidebar-link" onclick="switchPanel('panel-metrics')">
+        <i class="fas fa-tachometer-alt"></i><span>Resource Metrics</span>
+      </a>
+
+      <div class="nav-group-label">Decision Support</div>
+      <a class="sidebar-link" onclick="switchPanel('panel-decision')">
+        <i class="fas fa-brain"></i><span>DSS Tools</span>
+      </a>
+      <a class="sidebar-link" onclick="switchPanel('panel-simulation')">
+        <i class="fas fa-sliders-h"></i><span>Simulation</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="live-dot">System Online</div>
+    </div>
+  </aside>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-title">
+      El Shorouk City Solar Energy <span>· Smart GIS Platform</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-clock" id="clock">--:--:--</div>
+      <button class="topbar-btn" title="Refresh"><i class="fas fa-sync-alt"></i></button>
+      <button class="topbar-btn" title="Alerts"><i class="fas fa-bell"></i></button>
+      <button class="exit-btn" onclick="closeDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- ===== OVERVIEW PANEL ===== -->
+    <div id="panel-overview" class="dash-panel active">
+      <div class="kpi-row">
+        <div class="kpi-card glass gold">
+          <div class="kpi-label">Total Generated</div>
+          <div class="kpi-value">214.6 MWh</div>
+          <div class="kpi-sub">↑ 12.4% vs yesterday</div>
+          <div class="kpi-icon"><i class="fas fa-bolt"></i></div>
+        </div>
+        <div class="kpi-card glass green">
+          <div class="kpi-label">Solar Efficiency</div>
+          <div class="kpi-value">88.7%</div>
+          <div class="kpi-sub">Above 85% target</div>
+          <div class="kpi-icon"><i class="fas fa-sun"></i></div>
+        </div>
+        <div class="kpi-card glass blue">
+          <div class="kpi-label">Active Stations</div>
+          <div class="kpi-value">16 / 18</div>
+          <div class="kpi-sub">2 in scheduled maintenance</div>
+          <div class="kpi-icon"><i class="fas fa-map-pin"></i></div>
+        </div>
+        <div class="kpi-card glass amber">
+          <div class="kpi-label">CO₂ Saved Today</div>
+          <div class="kpi-value">389 t</div>
+          <div class="kpi-sub">Equivalent to 84 cars/year</div>
+          <div class="kpi-icon"><i class="fas fa-leaf"></i></div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="glass" style="padding:1.2rem">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-chart-bar"></i> Daily Energy Production</div>
+            <div class="card-badge">Today</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+        </div>
+        <div class="glass" style="padding:1.2rem">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-chart-line"></i> Monthly Generation Trend</div>
+            <div class="card-badge">2025</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="glass" style="padding:1.2rem">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-sun"></i> Solar Irradiance Analysis</div>
+            <div class="card-badge">kWh/m²/day</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-irradiance"></canvas></div>
+        </div>
+        <div class="glass" style="padding:1.2rem">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-balance-scale"></i> Consumption vs Production</div>
+            <div class="card-badge">MWh</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-compare"></canvas></div>
+        </div>
+      </div>
+
+      <div class="glass" style="padding:1.2rem;margin-bottom:1.1rem">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-battery-three-quarters"></i> Battery Storage Levels — All Stations</div>
+          <div class="card-badge warn">6 Stations</div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-storage"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ===== MAP PANEL ===== -->
+    <div id="panel-map" class="dash-panel">
+      <div id="map-wrap">
+        <div class="glass" style="padding:.8rem">
+          <div class="card-header" style="margin-bottom:.6rem">
+            <div class="card-title"><i class="fas fa-map-marked-alt"></i> El Shorouk City — GIS Solar Infrastructure</div>
+            <div class="card-badge">Live</div>
+          </div>
+          <div id="gis-map"></div>
+        </div>
+        <div class="map-sidebar">
+          <div class="glass" style="padding:1rem">
+            <div style="font-size:.8rem;font-weight:600;margin-bottom:.9rem;color:var(--sky-blue)"><i class="fas fa-layer-group"></i> Map Layers</div>
+            <div id="layer-controls"></div>
+
+            <div style="font-size:.8rem;font-weight:600;margin:1.2rem 0 .7rem;color:var(--sky-blue)"><i class="fas fa-info-circle"></i> Legend</div>
+            <div style="font-size:.73rem;display:flex;flex-direction:column;gap:.4rem">
+              <div style="display:flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;background:#F5A623;border-radius:50%;display:inline-block"></span> Solar Farm</div>
+              <div style="display:flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;background:#00BFFF;border-radius:50%;display:inline-block"></span> Rooftop Solar</div>
+              <div style="display:flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;background:#00E5A0;border-radius:3px;display:inline-block"></span> Substation</div>
+              <div style="display:flex;align-items:center;gap:.5rem"><span style="width:12px;height:12px;background:#FF6B35;border-radius:3px;display:inline-block"></span> Energy Storage</div>
+              <div style="display:flex;align-items:center;gap:.5rem"><span style="width:30px;height:3px;background:#FFD700;display:inline-block"></span> Transmission Line</div>
+            </div>
+
+            <div style="font-size:.8rem;font-weight:600;margin:1.2rem 0 .7rem;color:var(--sky-blue)"><i class="fas fa-map"></i> Base Map</div>
+            <select id="basemap-select" style="width:100%;background:rgba(0,0,0,.3);border:1px solid var(--glass-border);border-radius:6px;color:var(--text-primary);padding:.4rem .6rem;font-size:.78rem;outline:none">
+              <option value="dark">Dark Theme</option>
+              <option value="satellite">Satellite</option>
+              <option value="streets">Streets</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== LIVE MONITOR PANEL ===== -->
+    <div id="panel-live" class="dash-panel">
+      <div class="kpi-row" style="margin-bottom:1.2rem">
+        <div class="kpi-card glass gold"><div class="kpi-label">Peak Output Now</div><div class="kpi-value">198.3 MW</div><div class="kpi-icon"><i class="fas fa-bolt"></i></div></div>
+        <div class="kpi-card glass green"><div class="kpi-label">Avg Panel Temp</div><div class="kpi-value">47.2 °C</div><div class="kpi-icon"><i class="fas fa-thermometer-half"></i></div></div>
+        <div class="kpi-card glass blue"><div class="kpi-label">Grid Frequency</div><div class="kpi-value">50.02 Hz</div><div class="kpi-icon"><i class="fas fa-wave-square"></i></div></div>
+        <div class="kpi-card glass amber"><div class="kpi-label">Alerts Active</div><div class="kpi-value">3</div><div class="kpi-icon"><i class="fas fa-exclamation-triangle"></i></div></div>
+      </div>
+      <div class="glass" style="padding:1.2rem">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-table"></i> Live Station Monitoring Table</div>
+          <div class="card-badge">Auto-refresh 30s</div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="monitor-table" id="live-table"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CHARTS PANEL ===== -->
+    <div id="panel-charts" class="dash-panel">
+      <div class="two-col">
+        <div class="glass" style="padding:1.2rem">
+          <div class="card-header"><div class="card-title"><i class="fas fa-chart-bar"></i> Hourly Production Profile</div><div class="card-badge">Today</div></div>
+          <div class="chart-wrap"><canvas id="chart-hourly"></canvas></div>
+        </div>
+        <div class="glass" style="padding:1.2rem">
+          <div class="card-header"><div class="card-title"><i class="fas fa-cloud-sun"></i> Weather Impact on Output</div><div class="card-badge">7-Day</div></div>
+          <div class="chart-wrap"><canvas id="chart-weather"></canvas></div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="glass" style="padding:1.2rem">
+          <div class="card-header"><div class="card-title"><i class="fas fa-chart-pie"></i> Energy Distribution by Zone</div><div class="card-badge">Live</div></div>
+          <div class="chart-wrap"><canvas id="chart-pie"></canvas></div>
+        </div>
+        <div class="glass" style="padding:1.2rem">
+          <div class="card-header"><div class="card-title"><i class="fas fa-chart-area"></i> Radiation vs Efficiency Scatter</div><div class="card-badge">Monthly</div></div>
+          <div class="chart-wrap"><canvas id="chart-scatter"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== METRICS PANEL ===== -->
+    <div id="panel-metrics" class="dash-panel">
+      <div class="metrics-grid">
+        <div class="metric-card glass">
+          <div class="circle-wrap">
+            <svg width="90" height="90" viewBox="0 0 90 90">
+              <circle class="circle-bg" cx="45" cy="45" r="38"/>
+              <circle class="circle-fg" cx="45" cy="45" r="38" stroke="var(--solar-gold)"
+                stroke-dasharray="238.76" stroke-dashoffset="26.96" id="circ-efficiency"/>
+            </svg>
+            <div class="circle-text">
+              <div class="circle-pct" style="color:var(--solar-gold)">88.7%</div>
+            </div>
+          </div>
+          <div class="metric-label">Solar Panel<br>Efficiency</div>
+        </div>
+        <div class="metric-card glass">
+          <div class="circle-wrap">
+            <svg width="90" height="90" viewBox="0 0 90 90">
+              <circle class="circle-bg" cx="45" cy="45" r="38"/>
+              <circle class="circle-fg" cx="45" cy="45" r="38" stroke="var(--sky-blue)"
+                stroke-dasharray="238.76" stroke-dashoffset="71.63"/>
+            </svg>
+            <div class="circle-text">
+              <div class="circle-pct" style="color:var(--sky-blue)">70%</div>
+            </div>
+          </div>
+          <div class="metric-label">Storage<br>Utilization</div>
+        </div>
+        <div class="metric-card glass">
+          <div class="circle-wrap">
+            <svg width="90" height="90" viewBox="0 0 90 90">
+              <circle class="circle-bg" cx="45" cy="45" r="38"/>
+              <circle class="circle-fg" cx="45" cy="45" r="38" stroke="var(--grid-green)"
+                stroke-dasharray="238.76" stroke-dashoffset="23.88"/>
+            </svg>
+            <div class="circle-text">
+              <div class="circle-pct" style="color:var(--grid-green)">90%</div>
+            </div>
+          </div>
+          <div class="metric-label">Grid<br>Stability</div>
+        </div>
+        <div class="metric-card glass">
+          <div class="circle-wrap">
+            <svg width="90" height="90" viewBox="0 0 90 90">
+              <circle class="circle-bg" cx="45" cy="45" r="38"/>
+              <circle class="circle-fg" cx="45" cy="45" r="38" stroke="var(--solar-amber)"
+                stroke-dasharray="238.76" stroke-dashoffset="47.75"/>
+            </svg>
+            <div class="circle-text">
+              <div class="circle-pct" style="color:var(--solar-amber)">80%</div>
+            </div>
+          </div>
+          <div class="metric-label">Renewable<br>Contribution</div>
+        </div>
+      </div>
+
+      <div class="three-col">
+        <div class="glass" style="padding:1.2rem">
+          <div class="card-header"><div class="card-title"><i class="fas fa-temperature-high"></i> Panel Temperature Map</div></div>
+          <div class="chart-wrap"><canvas id="chart-temp"></canvas></div>
+        </div>
+        <div class="glass" style="padding:1.2rem">
+          <div class="card-header"><div class="card-title"><i class="fas fa-battery-full"></i> Storage by Station</div></div>
+          <div class="chart-wrap"><canvas id="chart-bat"></canvas></div>
+        </div>
+        <div class="glass" style="padding:1.2rem">
+          <div class="card-header"><div class="card-title"><i class="fas fa-wind"></i> Environmental Factors</div></div>
+          <div class="chart-wrap"><canvas id="chart-env"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== DECISION SUPPORT PANEL ===== -->
+    <div id="panel-decision" class="dash-panel">
+      <div style="margin-bottom:1rem">
+        <div class="glass" style="padding:1.2rem">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-brain"></i> Decision Support System — Analysis Results</div>
+            <div class="card-badge">AI-Assisted</div>
+          </div>
+          <p style="font-size:.8rem;color:var(--text-muted);line-height:1.7">
+            The DSS integrates spatial analysis, demand forecasting, and radiation suitability models to guide optimal expansion of El Shorouk City's solar infrastructure. Recommendations are derived from satellite imagery (NDVI, LST), population density layers, and historical energy consumption data.
+          </p>
+        </div>
+      </div>
+
+      <div class="decision-grid">
+        <div class="decision-card glass">
+          <div class="d-icon" style="background:rgba(245,166,35,.15);color:var(--solar-gold)"><i class="fas fa-map-pin"></i></div>
+          <h4>Best Locations for Future Solar Farms</h4>
+          <p>Multi-criteria spatial analysis using GIS overlay of land suitability, proximity to grid, slope analysis, and cloud cover data identifies three high-priority expansion zones in El Shorouk's eastern and southern districts.</p>
+          <div class="d-score">
+            <span style="width:120px;font-size:.72rem;color:var(--text-muted)">Zone A — Eastern</span>
+            <div class="d-bar"><div class="d-bar-fill" style="width:92%;background:var(--solar-gold);height:100%"></div></div>
+            <span style="font-family:'JetBrains Mono';font-size:.72rem;color:var(--solar-gold)">92%</span>
+          </div>
+          <div class="d-score" style="margin-top:.4rem">
+            <span style="width:120px;font-size:.72rem;color:var(--text-muted)">Zone B — Southern</span>
+            <div class="d-bar"><div class="d-bar-fill" style="width:85%;background:var(--solar-gold);height:100%"></div></div>
+            <span style="font-family:'JetBrains Mono';font-size:.72rem;color:var(--solar-gold)">85%</span>
+          </div>
+          <div class="d-score" style="margin-top:.4rem">
+            <span style="width:120px;font-size:.72rem;color:var(--text-muted)">Zone C — Industrial</span>
+            <div class="d-bar"><div class="d-bar-fill" style="width:78%;background:var(--solar-gold);height:100%"></div></div>
+            <span style="font-family:'JetBrains Mono';font-size:.72rem;color:var(--solar-gold)">78%</span>
+          </div>
+        </div>
+
+        <div class="decision-card glass">
+          <div class="d-icon" style="background:rgba(0,191,255,.15);color:var(--sky-blue)"><i class="fas fa-chart-line"></i></div>
+          <h4>Energy Demand Forecasting</h4>
+          <p>LSTM-based time-series model trained on 5 years of El Shorouk consumption data predicts 18.3% demand growth over the next 3 years. Current installed capacity covers 94% of projected 2027 peak demand.</p>
+          <div class="d-score" style="margin-top:.8rem">
+            <span style="width:120px;font-size:.72rem;color:var(--text-muted)">2025 Coverage</span>
+            <div class="d-bar"><div class="d-bar-fill" style="width:94%;background:var(--sky-blue);height:100%"></div></div>
+            <span style="font-family:'JetBrains Mono';font-size:.72rem;color:var(--sky-blue)">94%</span>
+          </div>
+          <div class="d-score" style="margin-top:.4rem">
+            <span style="width:120px;font-size:.72rem;color:var(--text-muted)">2026 Forecast</span>
+            <div class="d-bar"><div class="d-bar-fill" style="width:82%;background:var(--sky-blue);height:100%"></div></div>
+            <span style="font-family:'JetBrains Mono';font-size:.72rem;color:var(--sky-blue)">82%</span>
+          </div>
+          <div class="d-score" style="margin-top:.4rem">
+            <span style="width:120px;font-size:.72rem;color:var(--text-muted)">2027 Forecast</span>
+            <div class="d-bar"><div class="d-bar-fill" style="width:74%;background:var(--sky-blue);height:100%"></div></div>
+            <span style="font-family:'JetBrains Mono';font-size:.72rem;color:var(--sky-blue)">74%</span>
+          </div>
+        </div>
+
+        <div class="decision-card glass">
+          <div class="d-icon" style="background:rgba(0,229,160,.15);color:var(--grid-green)"><i class="fas fa-sun"></i></div>
+          <h4>Solar Radiation Suitability</h4>
+          <p>Analysis using PVGIS data shows El Shorouk receives an average of 6.2 peak sun hours/day, ranking it in the top 15% of Egyptian cities for photovoltaic energy potential. Optimal tilt angle: 26°.</p>
+          <div class="d-score" style="margin-top:.8rem">
+            <span style="width:120px;font-size:.72rem;color:var(--text-muted)">Summer Peak</span>
+            <div class="d-bar"><div class="d-bar-fill" style="width:96%;background:var(--grid-green);height:100%"></div></div>
+            <span style="font-family:'JetBrains Mono';font-size:.72rem;color:var(--grid-green)">7.8 h</span>
+          </div>
+          <div class="d-score" style="margin-top:.4rem">
+            <span style="width:120px;font-size:.72rem;color:var(--text-muted)">Annual Average</span>
+            <div class="d-bar"><div class="d-bar-fill" style="width:77%;background:var(--grid-green);height:100%"></div></div>
+            <span style="font-family:'JetBrains Mono';font-size:.72rem;color:var(--grid-green)">6.2 h</span>
+          </div>
+          <div class="d-score" style="margin-top:.4rem">
+            <span style="width:120px;font-size:.72rem;color:var(--text-muted)">Winter Minimum</span>
+            <div class="d-bar"><div class="d-bar-fill" style="width:58%;background:var(--grid-green);height:100%"></div></div>
+            <span style="font-family:'JetBrains Mono';font-size:.72rem;color:var(--grid-green)">4.7 h</span>
+          </div>
+        </div>
+
+        <div class="decision-card glass">
+          <div class="d-icon" style="background:rgba(255,107,53,.15);color:var(--solar-amber)"><i class="fas fa-project-diagram"></i></div>
+          <h4>Infrastructure Expansion Plan</h4>
+          <p>Spatial network analysis recommends upgrading 3 transmission corridors and adding 2 new 110kV substations to accommodate 80 MW of planned capacity additions by 2026 Q3 without grid congestion.</p>
+          <div class="d-score" style="margin-top:.8rem">
+            <span style="width:120px;font-size:.72rem;color:var(--text-muted)">Grid Readiness</span>
+            <div class="d-bar"><div class="d-bar-fill" style="width:67%;background:var(--solar-amber);height:100%"></div></div>
+            <span style="font-family:'JetBrains Mono';font-size:.72rem;color:var(--solar-amber)">67%</span>
+          </div>
+          <div class="d-score" style="margin-top:.4rem">
+            <span style="width:120px;font-size:.72rem;color:var(--text-muted)">Storage Need</span>
+            <div class="d-bar"><div class="d-bar-fill" style="width:88%;background:var(--solar-amber);height:100%"></div></div>
+            <span style="font-family:'JetBrains Mono';font-size:.72rem;color:var(--solar-amber)">+120 MWh</span>
+          </div>
+          <div class="d-score" style="margin-top:.4rem">
+            <span style="width:120px;font-size:.72rem;color:var(--text-muted)">ROI Estimate</span>
+            <div class="d-bar"><div class="d-bar-fill" style="width:80%;background:var(--solar-amber);height:100%"></div></div>
+            <span style="font-family:'JetBrains Mono';font-size:.72rem;color:var(--solar-amber)">7.2 yrs</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SIMULATION PANEL ===== -->
+    <div id="panel-simulation" class="dash-panel">
+      <div class="glass" style="padding:1.2rem;margin-bottom:1rem">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-sliders-h"></i> Solar Energy Simulation Engine</div>
+          <div class="card-badge warn">Sandbox Mode</div>
+        </div>
+        <p style="font-size:.8rem;color:var(--text-muted)">
+          Adjust simulation parameters below to model different scenarios and evaluate their impact on El Shorouk's solar grid. Results update after running the simulation.
+        </p>
+      </div>
+
+      <div class="sim-row">
+        <div class="sim-card glass">
+          <h4><i class="fas fa-cloud"></i> Weather Effects</h4>
+          <div class="sim-label"><span>Cloud Cover</span><span id="cloud-val">30%</span></div>
+          <input type="range" min="0" max="100" value="30" id="sim-cloud" oninput="document.getElementById('cloud-val').textContent=this.value+'%'">
+          <div class="sim-label"><span>Wind Speed</span><span id="wind-val">15 km/h</span></div>
+          <input type="range" min="0" max="80" value="15" id="sim-wind" oninput="document.getElementById('wind-val').textContent=this.value+' km/h'">
+          <div class="sim-label"><span>Dust Soiling Factor</span><span id="dust-val">5%</span></div>
+          <input type="range" min="0" max="30" value="5" id="sim-dust" oninput="document.getElementById('dust-val').textContent=this.value+'%'">
+        </div>
+
+        <div class="sim-card glass">
+          <h4><i class="fas fa-city"></i> Demand Scenario</h4>
+          <div class="sim-label"><span>Population Growth</span><span id="pop-val">+5%</span></div>
+          <input type="range" min="0" max="30" value="5" id="sim-pop" oninput="document.getElementById('pop-val').textContent='+'+this.value+'%'">
+          <div class="sim-label"><span>Industrial Load</span><span id="ind-val">+10%</span></div>
+          <input type="range" min="0" max="50" value="10" id="sim-ind" oninput="document.getElementById('ind-val').textContent='+'+this.value+'%'">
+          <div class="sim-label"><span>EV Charging Load</span><span id="ev-val">+8%</span></div>
+          <input type="range" min="0" max="40" value="8" id="sim-ev" oninput="document.getElementById('ev-val').textContent='+'+this.value+'%'">
+        </div>
+
+        <div class="sim-card glass">
+          <h4><i class="fas fa-battery-half"></i> Storage Optimization</h4>
+          <div class="sim-label"><span>Storage Capacity Target</span><span id="stor-val">300 MWh</span></div>
+          <input type="range" min="100" max="600" step="10" value="300" id="sim-stor" oninput="document.getElementById('stor-val').textContent=this.value+' MWh'">
+          <div class="sim-label"><span>Charge/Discharge Rate</span><span id="rate-val">50 MW</span></div>
+          <input type="range" min="10" max="200" step="5" value="50" id="sim-rate" oninput="document.getElementById('rate-val').textContent=this.value+' MW'">
+          <div class="sim-label"><span>Grid Export Limit</span><span id="export-val">80 MW</span></div>
+          <input type="range" min="0" max="200" step="5" value="80" id="sim-export" oninput="document.getElementById('export-val').textContent=this.value+' MW'">
+        </div>
+
+        <div class="sim-card glass">
+          <h4><i class="fas fa-plus-circle"></i> Future Deployment</h4>
+          <div class="sim-label"><span>New Solar Farm Capacity</span><span id="new-cap-val">50 MW</span></div>
+          <input type="range" min="0" max="200" step="5" value="50" id="sim-newcap" oninput="document.getElementById('new-cap-val').textContent=this.value+' MW'">
+          <div class="sim-label"><span>Rooftop Expansion</span><span id="roof-val">+2,000 panels</span></div>
+          <input type="range" min="0" max="10000" step="500" value="2000" id="sim-roof" oninput="document.getElementById('roof-val').textContent='+'+this.value.toLocaleString()+' panels'">
+          <div class="sim-label"><span>Commissioning Year</span><span id="year-val">2026</span></div>
+          <input type="range" min="2025" max="2030" value="2026" id="sim-year" oninput="document.getElementById('year-val').textContent=this.value">
+          <button class="run-sim-btn" onclick="runSimulation()"><i class="fas fa-play"></i> Run Simulation</button>
+        </div>
+      </div>
+
+      <div class="glass" style="padding:1.2rem" id="sim-output" style="display:none">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-poll"></i> Simulation Results</div>
+          <div class="card-badge">Last run: <span id="sim-time">—</span></div>
+        </div>
+        <div id="sim-results-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:.5rem"></div>
+        <div class="chart-wrap" style="margin-top:1rem"><canvas id="chart-sim"></canvas></div>
+      </div>
+    </div>
+
+  </main><!-- end .main-content -->
+</section><!-- end #dashboard -->
+
+<!-- ===== JS LIBRARIES ===== -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+/* =========================================
+   GLOBAL DATA — El Shorouk City
+   ========================================= */
+const SHOROUK_LAT = 30.1167, SHOROUK_LNG = 31.6167;
+
+const solarStations = [
+  { id:'SS-01', name:'El Shorouk Solar Farm Alpha',   lat:30.1250, lng:31.6320, type:'farm',    cap:45,  out:41.2, eff:91.6, status:'active',  panels:14400, temp:47, storage:78, lastUpdate:'10:32' },
+  { id:'SS-02', name:'Industrial Zone PV Plant',      lat:30.1050, lng:31.6450, type:'farm',    cap:38,  out:34.8, eff:91.6, status:'active',  panels:12160, temp:49, storage:65, lastUpdate:'10:30' },
+  { id:'SS-03', name:'Sector 7 Rooftop Cluster',      lat:30.1300, lng:31.5980, type:'rooftop', cap:8.5, out:7.1,  eff:83.5, status:'active',  panels:2720,  temp:46, storage:0,  lastUpdate:'10:31' },
+  { id:'SS-04', name:'Residential Zone B Solar',      lat:30.1180, lng:31.6080, type:'rooftop', cap:6.2, out:5.5,  eff:88.7, status:'active',  panels:1984,  temp:45, storage:0,  lastUpdate:'10:32' },
+  { id:'SS-05', name:'South Shorouk PV Array',        lat:30.0980, lng:31.6200, type:'farm',    cap:62,  out:54.1, eff:87.3, status:'active',  panels:19840, temp:51, storage:88, lastUpdate:'10:28' },
+  { id:'SS-06', name:'Shopping District Rooftop',     lat:30.1220, lng:31.6180, type:'rooftop', cap:4.8, out:4.1,  eff:85.4, status:'active',  panels:1536,  temp:44, storage:0,  lastUpdate:'10:31' },
+  { id:'SS-07', name:'North Ring Solar Station',      lat:30.1420, lng:31.6100, type:'farm',    cap:30,  out:0,    eff:0,    status:'maint',   panels:9600,  temp:38, storage:42, lastUpdate:'08:00' },
+  { id:'SS-08', name:'East Industrial PV',            lat:30.1100, lng:31.6520, type:'farm',    cap:28,  out:24.6, eff:87.9, status:'active',  panels:8960,  temp:50, storage:71, lastUpdate:'10:29' },
+  { id:'SS-09', name:'Tech Park Solar Canopy',        lat:30.1350, lng:31.6350, type:'rooftop', cap:3.6, out:3.0,  eff:83.3, status:'active',  panels:1152,  temp:43, storage:0,  lastUpdate:'10:30' },
+  { id:'SS-10', name:'Western Bypass Solar Plant',    lat:30.1080, lng:31.5850, type:'farm',    cap:55,  out:47.8, eff:86.9, status:'active',  panels:17600, temp:48, storage:55, lastUpdate:'10:27' },
+  { id:'SS-11', name:'Hospital District PV',          lat:30.1240, lng:31.6260, type:'rooftop', cap:2.4, out:2.0,  eff:83.3, status:'active',  panels:768,   temp:44, storage:0,  lastUpdate:'10:32' },
+  { id:'SS-12', name:'Central Park Solar Hub',        lat:30.1170, lng:31.6170, type:'farm',    cap:18,  out:0,    eff:0,    status:'maint',   panels:5760,  temp:37, storage:33, lastUpdate:'07:45' },
+  { id:'SS-13', name:'Education Zone Rooftop',        lat:30.1310, lng:31.6050, type:'rooftop', cap:5.1, out:4.6,  eff:90.2, status:'active',  panels:1632,  temp:46, storage:0,  lastUpdate:'10:31' },
+  { id:'SS-14', name:'Gate 5 Solar Corridor',         lat:30.1020, lng:31.6350, type:'farm',    cap:22,  out:19.8, eff:90.0, status:'active',  panels:7040,  temp:49, storage:62, lastUpdate:'10:30' },
+  { id:'SS-15', name:'Logistics Park PV Station',     lat:30.0940, lng:31.6280, type:'farm',    cap:35,  out:31.2, eff:89.1, status:'active',  panels:11200, temp:52, storage:80, lastUpdate:'10:28' },
+  { id:'SS-16', name:'Sports City Solar Array',       lat:30.1400, lng:31.6250, type:'rooftop', cap:7.8, out:6.9,  eff:88.5, status:'active',  panels:2496,  temp:45, storage:0,  lastUpdate:'10:31' },
+  { id:'SS-17', name:'Commercial District PV',        lat:30.1160, lng:31.6400, type:'rooftop', cap:9.2, out:8.2,  eff:89.1, status:'active',  panels:2944,  temp:47, storage:0,  lastUpdate:'10:30' },
+  { id:'SS-18', name:'South Gate Energy Storage Hub', lat:30.0900, lng:31.6150, type:'storage', cap:0,   out:0,    eff:0,    status:'active',  panels:0,     temp:28, storage:91, lastUpdate:'10:32' },
+];
+
+const substations = [
+  { lat:30.1200, lng:31.6200, name:'Shorouk Main 110kV Substation' },
+  { lat:30.1050, lng:31.6100, name:'South District Substation 66kV' },
+  { lat:30.1380, lng:31.6350, name:'North Industrial 110kV Substation' },
+];
+
+const transmissionLines = [
+  [[30.1200,31.6200],[30.1250,31.6320],[30.1050,31.6450]],
+  [[30.1200,31.6200],[30.0980,31.6200],[30.0900,31.6150]],
+  [[30.1200,31.6200],[30.1380,31.6350],[30.1420,31.6100]],
+  [[30.1200,31.6200],[30.1080,31.5850]],
+];
+
+const layers = [
+  { id:'solar-farms',   label:'Solar Farms',          color:'#F5A623', checked:true  },
+  { id:'rooftop',       label:'Rooftop Solar Systems', color:'#00BFFF', checked:true  },
+  { id:'substations',   label:'Substations',           color:'#00E5A0', checked:true  },
+  { id:'transmission',  label:'Transmission Lines',    color:'#FFD700', checked:true  },
+  { id:'storage-sites', label:'Energy Storage Sites',  color:'#FF6B35', checked:true  },
+  { id:'rad-zones',     label:'Solar Radiation Zones', color:'rgba(245,166,35,.18)', checked:false },
+  { id:'pop-density',   label:'Population Density',    color:'rgba(0,191,255,.15)',  checked:false },
+  { id:'suitability',   label:'Land Suitability Zones',color:'rgba(0,229,160,.18)', checked:false },
+];
+
+/* =========================================
+   BACKGROUND CANVAS ANIMATION
+   ========================================= */
+(function initBgCanvas(){
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W,H, nodes=[], animFrame;
+
+  function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+  window.addEventListener('resize',resize); resize();
+
+  for(let i=0;i<60;i++) nodes.push({
+    x:Math.random()*2000, y:Math.random()*1200,
+    vx:(Math.random()-.5)*.3, vy:(Math.random()-.5)*.3,
+    r:Math.random()*2+1
+  });
+
+  let gridPulse=0;
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // grid
+    gridPulse=(gridPulse+.008)%(Math.PI*2);
+    const gridAlpha=.06+Math.sin(gridPulse)*.04;
+    ctx.strokeStyle=`rgba(0,191,255,${gridAlpha})`; ctx.lineWidth=.5;
+    const gs=60;
+    for(let x=0;x<W;x+=gs){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
+    for(let y=0;y<H;y+=gs){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
+
+    // scan line
+    const scanY=(Date.now()*.04)%H;
+    const sg=ctx.createLinearGradient(0,scanY-40,0,scanY+40);
+    sg.addColorStop(0,'rgba(0,191,255,0)'); sg.addColorStop(.5,'rgba(0,191,255,.08)'); sg.addColorStop(1,'rgba(0,191,255,0)');
+    ctx.fillStyle=sg; ctx.fillRect(0,scanY-40,W,80);
+
+    // nodes + connections
+    nodes.forEach(n=>{ n.x+=n.vx; n.y+=n.vy; if(n.x<0||n.x>W)n.vx*=-1; if(n.y<0||n.y>H)n.vy*=-1; });
+    nodes.forEach((a,i)=>{
+      nodes.slice(i+1).forEach(b=>{
+        const d=Math.hypot(a.x-b.x,a.y-b.y);
+        if(d<180){ ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+          ctx.strokeStyle=`rgba(0,229,160,${.15*(1-d/180)})`; ctx.lineWidth=.6; ctx.stroke(); }
+      });
+      ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,191,255,.55)'; ctx.fill();
+    });
+    animFrame=requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* =========================================
+   COUNTER ANIMATION
+   ========================================= */
+function animateCounters(){
+  document.querySelectorAll('.stat-num[data-target]').forEach(el=>{
+    const target=+el.getAttribute('data-target'), dur=2000, start=Date.now();
+    const tick=()=>{
+      const p=Math.min((Date.now()-start)/dur,1);
+      const ease=1-Math.pow(1-p,3);
+      el.textContent=Math.round(target*ease).toLocaleString();
+      if(p<1) requestAnimationFrame(tick);
+    };
+    tick();
+  });
+}
+const obs=new IntersectionObserver(entries=>{ if(entries[0].isIntersecting){ animateCounters(); obs.disconnect(); }},{threshold:.3});
+obs.observe(document.querySelector('.stats-bar'));
+
+/* =========================================
+   NAVIGATION
+   ========================================= */
+function openDashboard(){
+  document.getElementById('landing').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  initDashboard();
+}
+function closeDashboard(){
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('landing').style.display='block';
+}
+
+function switchPanel(id){
+  document.querySelectorAll('.dash-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  if(id==='panel-map' && !window._mapInit) initMap();
+  if(id==='panel-charts' && !window._chartsInit) initExtraCharts();
+  if(id==='panel-metrics' && !window._metricsInit) initMetricCharts();
+}
+
+/* =========================================
+   CLOCK
+   ========================================= */
+function startClock(){
+  const el=document.getElementById('clock');
+  setInterval(()=>{ el.textContent=new Date().toLocaleTimeString('en-GB'); },1000);
+}
+
+/* =========================================
+   CHART HELPERS
+   ========================================= */
+const CHART_DEFAULTS = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{ legend:{ labels:{ color:'#7A9BBF', font:{size:10,family:'Space Grotesk'}, boxWidth:12 } } },
+  scales:{
+    x:{ ticks:{color:'#7A9BBF',font:{size:9}}, grid:{color:'rgba(255,255,255,.05)'} },
+    y:{ ticks:{color:'#7A9BBF',font:{size:9}}, grid:{color:'rgba(255,255,255,.05)'} }
+  }
+};
+function mk(id,type,data,opts){
+  const c=document.getElementById(id); if(!c)return;
+  return new Chart(c,{type,data,options:{...CHART_DEFAULTS,...opts}});
+}
+
+/* =========================================
+   MAIN DASHBOARD INIT
+   ========================================= */
+let dashboardInited=false;
+function initDashboard(){
+  if(dashboardInited)return; dashboardInited=true;
+  startClock();
+  initOverviewCharts();
+  buildLiveTable();
+}
+
+function initOverviewCharts(){
+  // Daily
+  mk('chart-daily','bar',{
+    labels:['6am','7am','8am','9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm'],
+    datasets:[{
+      label:'Generation (MWh)',
+      data:[2.1,8.4,22.6,38.2,52.7,61.4,63.8,60.2,55.4,44.1,30.8,16.2,5.4],
+      backgroundColor:'rgba(245,166,35,.7)', borderColor:'#F5A623', borderWidth:1, borderRadius:4
+    },{
+      label:'Consumption (MWh)',
+      data:[18,20,24,28,32,34,36,38,35,32,30,28,22],
+      type:'line', borderColor:'#00BFFF', backgroundColor:'rgba(0,191,255,.1)', tension:.4, fill:true, pointRadius:3
+    }]
+  });
+
+  // Monthly
+  mk('chart-monthly','line',{
+    labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    datasets:[{
+      label:'2025 Generation (GWh)',
+      data:[4.2,4.8,5.6,6.4,7.1,7.8,7.6,7.4,6.8,5.9,4.6,4.0],
+      borderColor:'#00E5A0', backgroundColor:'rgba(0,229,160,.12)', tension:.4, fill:true, pointBackgroundColor:'#00E5A0', pointRadius:4
+    },{
+      label:'2024 Generation (GWh)',
+      data:[3.8,4.2,5.1,5.9,6.4,7.0,6.8,6.5,6.0,5.2,4.1,3.5],
+      borderColor:'rgba(0,191,255,.5)', backgroundColor:'rgba(0,191,255,.05)', tension:.4, fill:true, pointRadius:3, borderDash:[4,4]
+    }]
+  });
+
+  // Irradiance
+  mk('chart-irradiance','bar',{
+    labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    datasets:[{
+      label:'Solar Irradiance (kWh/m²/day)',
+      data:[3.8,4.6,5.8,7.0,7.8,8.2,8.1,7.9,7.0,5.8,4.4,3.6],
+      backgroundColor:['#0A1628','#0D1F3C','#1a3a6b','#2a5fa8','#F5A623','#FF6B35','#FF4500','#FF6B35','#F5A623','#2a5fa8','#1a3a6b','#0D1F3C'].map(c=>'rgba(245,166,35,.7)'),
+      borderColor:'#F5A623', borderWidth:1, borderRadius:4
+    }]
+  });
+
+  // Compare
+  mk('chart-compare','line',{
+    labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    datasets:[{
+      label:'Energy Produced (GWh)', data:[4.2,4.8,5.6,6.4,7.1,7.8,7.6,7.4,6.8,5.9,4.6,4.0],
+      borderColor:'#00E5A0', backgroundColor:'rgba(0,229,160,.1)', tension:.4, fill:true
+    },{
+      label:'Energy Consumed (GWh)', data:[5.1,5.3,5.8,6.0,6.5,7.0,7.5,7.4,6.6,5.7,5.2,5.4],
+      borderColor:'#FF6B35', backgroundColor:'rgba(255,107,53,.1)', tension:.4, fill:true
+    }]
+  });
+
+  // Storage
+  mk('chart-storage','bar',{
+    labels:['SS-01','SS-05','SS-08','SS-10','SS-14','SS-15','SS-18'],
+    datasets:[{
+      label:'Storage Level (%)',
+      data:[78,88,71,55,62,80,91],
+      backgroundColor:d=>{ const v=d.raw; return v>80?'rgba(0,229,160,.8)':v>60?'rgba(0,191,255,.8)':'rgba(245,166,35,.8)'; },
+      borderRadius:4
+    }]
+  },{scales:{...CHART_DEFAULTS.scales,y:{...CHART_DEFAULTS.scales.y,max:100}}});
+}
+
+/* =========================================
+   LIVE TABLE
+   ========================================= */
+function buildLiveTable(){
+  const t=document.getElementById('live-table'); if(!t)return;
+  t.innerHTML=`<thead><tr>
+    <th>Station ID</th><th>Name</th><th>Output (MW)</th><th>Temp (°C)</th>
+    <th>Efficiency</th><th>Storage %</th><th>Status</th><th>Updated</th>
+  </tr></thead>`;
+  const tbody=document.createElement('tbody');
+  solarStations.forEach(s=>{
+    const effStr=s.eff?s.eff+'%':'N/A';
+    const outStr=s.out?s.out+' MW':'—';
+    const storStr=s.storage?s.storage+'%':'—';
+    const cls=s.status==='active'?'active':'maint';
+    const label=s.status==='active'?'Active':'Maintenance';
+    tbody.innerHTML+=`<tr>
+      <td style="font-family:'JetBrains Mono';font-size:.75rem;color:var(--sky-blue)">${s.id}</td>
+      <td>${s.name}</td>
+      <td style="font-family:'JetBrains Mono'">${outStr}</td>
+      <td style="font-family:'JetBrains Mono'">${s.temp}°C</td>
+      <td style="font-family:'JetBrains Mono';color:${s.eff>85?'var(--grid-green)':s.eff>70?'var(--solar-gold)':'var(--solar-amber)'}">${effStr}</td>
+      <td style="font-family:'JetBrains Mono'">${storStr}</td>
+      <td><span class="status-pill ${cls}">${label}</span></td>
+      <td style="font-size:.72rem;color:var(--text-muted)">${s.lastUpdate}</td>
+    </tr>`;
+  });
+  t.appendChild(tbody);
+}
+
+/* =========================================
+   LEAFLET MAP
+   ========================================= */
+let map, leafletLayers={};
+function initMap(){
+  window._mapInit=true;
+  map=L.map('gis-map',{center:[SHOROUK_LAT,SHOROUK_LNG],zoom:13});
+
+  const tileDark  = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; CartoDB',maxZoom:19});
+  const tileSat   = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'&copy; Esri',maxZoom:19});
+  const tileStreet= L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OSM',maxZoom:19});
+
+  tileDark.addTo(map);
+
+  document.getElementById('basemap-select').addEventListener('change',function(){
+    map.eachLayer(l=>{ if(l instanceof L.TileLayer) map.removeLayer(l); });
+    if(this.value==='dark')   tileDark.addTo(map);
+    if(this.value==='satellite') tileSat.addTo(map);
+    if(this.value==='streets') tileStreet.addTo(map);
+    Object.values(leafletLayers).forEach(lg=>{ if(map.hasLayer(lg))lg.addTo(map); });
+  });
+
+  // Farm icon
+  const farmIcon = L.divIcon({className:'',html:`<div style="width:20px;height:20px;background:radial-gradient(circle,#F5A623,#FF6B35);border-radius:50%;border:2px solid #fff;box-shadow:0 0 10px rgba(245,166,35,.8)"></div>`,iconSize:[20,20],iconAnchor:[10,10]});
+  const roofIcon = L.divIcon({className:'',html:`<div style="width:16px;height:16px;background:#00BFFF;border-radius:3px;border:2px solid #fff;box-shadow:0 0 8px rgba(0,191,255,.8)"></div>`,iconSize:[16,16],iconAnchor:[8,8]});
+  const substIcon= L.divIcon({className:'',html:`<div style="width:18px;height:18px;background:#00E5A0;border-radius:3px;border:2px solid #fff;box-shadow:0 0 8px rgba(0,229,160,.8)"></div>`,iconSize:[18,18],iconAnchor:[9,9]});
+  const storIcon = L.divIcon({className:'',html:`<div style="width:18px;height:18px;background:#FF6B35;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px rgba(255,107,53,.8)"></div>`,iconSize:[18,18],iconAnchor:[9,9]});
+
+  // Farm layer
+  const farmGroup=L.layerGroup();
+  solarStations.filter(s=>s.type==='farm').forEach(s=>{
+    const m=L.marker([s.lat,s.lng],{icon:farmIcon});
+    m.bindPopup(`<div class="popup-title">☀️ ${s.name}</div>
+      <div class="popup-row"><span class="popup-key">ID</span><span class="popup-val">${s.id}</span></div>
+      <div class="popup-row"><span class="popup-key">Capacity</span><span class="popup-val">${s.cap} MW</span></div>
+      <div class="popup-row"><span class="popup-key">Output</span><span class="popup-val" style="color:var(--solar-gold)">${s.out} MW</span></div>
+      <div class="popup-row"><span class="popup-key">Efficiency</span><span class="popup-val" style="color:var(--grid-green)">${s.eff}%</span></div>
+      <div class="popup-row"><span class="popup-key">Panels</span><span class="popup-val">${s.panels.toLocaleString()}</span></div>
+      <div class="popup-row"><span class="popup-key">Status</span><span class="popup-val" style="color:${s.status==='active'?'var(--grid-green)':'var(--solar-gold)'}">${s.status==='active'?'Active':'Maintenance'}</span></div>
+      <div class="popup-row"><span class="popup-key">Updated</span><span class="popup-val">Today ${s.lastUpdate}</span></div>`);
+    farmGroup.addLayer(m);
+  });
+  farmGroup.addTo(map); leafletLayers['solar-farms']=farmGroup;
+
+  // Rooftop layer
+  const roofGroup=L.layerGroup();
+  solarStations.filter(s=>s.type==='rooftop').forEach(s=>{
+    const m=L.marker([s.lat,s.lng],{icon:roofIcon});
+    m.bindPopup(`<div class="popup-title">🏠 ${s.name}</div>
+      <div class="popup-row"><span class="popup-key">Capacity</span><span class="popup-val">${s.cap} MW</span></div>
+      <div class="popup-row"><span class="popup-key">Output</span><span class="popup-val" style="color:var(--sky-blue)">${s.out} MW</span></div>
+      <div class="popup-row"><span class="popup-key">Efficiency</span><span class="popup-val">${s.eff}%</span></div>
+      <div class="popup-row"><span class="popup-key">Panels</span><span class="popup-val">${s.panels.toLocaleString()}</span></div>`);
+    roofGroup.addLayer(m);
+  });
+  roofGroup.addTo(map); leafletLayers['rooftop']=roofGroup;
+
+  // Substations
+  const substGroup=L.layerGroup();
+  substations.forEach(s=>{
+    const m=L.marker([s.lat,s.lng],{icon:substIcon});
+    m.bindPopup(`<div class="popup-title">⚡ ${s.name}</div><div class="popup-row"><span class="popup-key">Type</span><span class="popup-val">Substation</span></div>`);
+    substGroup.addLayer(m);
+  });
+  substGroup.addTo(map); leafletLayers['substations']=substGroup;
+
+  // Storage
+  const storGroup=L.layerGroup();
+  solarStations.filter(s=>s.type==='storage').forEach(s=>{
+    const m=L.marker([s.lat,s.lng],{icon:storIcon});
+    m.bindPopup(`<div class="popup-title">🔋 ${s.name}</div><div class="popup-row"><span class="popup-key">Storage Level</span><span class="popup-val">${s.storage}%</span></div>`);
+    storGroup.addLayer(m);
+  });
+  storGroup.addTo(map); leafletLayers['storage-sites']=storGroup;
+
+  // Transmission lines
+  const transGroup=L.layerGroup();
+  transmissionLines.forEach(coords=>{
+    L.polyline(coords,{color:'#FFD700',weight:2,opacity:.8,dashArray:'8 4'}).addTo(transGroup);
+  });
+  transGroup.addTo(map); leafletLayers['transmission']=transGroup;
+
+  // Radiation zone (polygon overlay)
+  const radGroup=L.layerGroup();
+  L.circle([30.1000,31.6200],{radius:3000,color:'#F5A623',fillColor:'#F5A623',fillOpacity:.08,weight:1,dashArray:'6 3'}).addTo(radGroup);
+  L.circle([30.1300,31.6100],{radius:2000,color:'#FF6B35',fillColor:'#FF6B35',fillOpacity:.08,weight:1,dashArray:'6 3'}).addTo(radGroup);
+  leafletLayers['rad-zones']=radGroup;
+
+  // Pop density
+  const popGroup=L.layerGroup();
+  L.rectangle([[30.115,31.610],[30.135,31.630]],{color:'#00BFFF',fillColor:'#00BFFF',fillOpacity:.08,weight:1}).addTo(popGroup);
+  leafletLayers['pop-density']=popGroup;
+
+  // Suitability zones
+  const suitGroup=L.layerGroup();
+  L.polygon([[30.095,31.620],[30.090,31.640],[30.100,31.650],[30.110,31.635]],
+    {color:'#00E5A0',fillColor:'#00E5A0',fillOpacity:.1,weight:1,dashArray:'6 3'}).addTo(suitGroup);
+  L.polygon([[30.125,31.640],[30.130,31.660],[30.140,31.655],[30.138,31.638]],
+    {color:'#00E5A0',fillColor:'#00E5A0',fillOpacity:.1,weight:1,dashArray:'6 3'}).addTo(suitGroup);
+  leafletLayers['suitability']=suitGroup;
+
+  // Build layer controls HTML
+  const ctrl=document.getElementById('layer-controls');
+  layers.forEach(l=>{
+    ctrl.innerHTML+=`<div class="layer-toggle">
+      <div class="layer-name"><div class="layer-dot" style="background:${l.color}"></div>${l.label}</div>
+      <label class="toggle-switch">
+        <input type="checkbox" ${l.checked?'checked':''} onchange="toggleLayer('${l.id}',this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>`;
+  });
+}
+
+function toggleLayer(id,on){
+  const lg=leafletLayers[id]; if(!lg)return;
+  if(on) lg.addTo(map); else map.removeLayer(lg);
+}
+
+/* =========================================
+   EXTRA CHARTS
+   ========================================= */
+function initExtraCharts(){
+  window._chartsInit=true;
+  mk('chart-hourly','bar',{
+    labels:Array.from({length:24},(_,i)=>i+'h'),
+    datasets:[{
+      label:'MWh',
+      data:[1.2,0.8,0.5,0.3,0.2,0.5,4.2,14.8,28.6,42.1,52.8,58.4,60.2,57.4,52.0,44.3,33.8,20.6,10.2,4.8,2.4,1.8,1.5,1.2],
+      backgroundColor:'rgba(0,229,160,.7)', borderColor:'#00E5A0', borderRadius:3
+    }]
+  });
+
+  mk('chart-weather','line',{
+    labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+    datasets:[{
+      label:'Solar Output (MWh)', data:[198,215,184,172,209,226,214],
+      borderColor:'#F5A623', tension:.4, fill:false, pointRadius:4
+    },{
+      label:'Cloud Cover (%)', data:[22,18,35,42,28,12,20],
+      borderColor:'#7A9BBF', tension:.4, fill:false, borderDash:[4,4], pointRadius:3, yAxisID:'y1'
+    }]
+  },{scales:{...CHART_DEFAULTS.scales,y1:{ticks:{color:'#7A9BBF',font:{size:9}},grid:{display:false},position:'right',max:100}}});
+
+  mk('chart-pie','doughnut',{
+    labels:['Residential','Industrial','Commercial','Hospitals','Education','Export Grid'],
+    datasets:[{
+      data:[28,34,18,8,6,6],
+      backgroundColor:['#00BFFF','#F5A623','#00E5A0','#FF6B35','#9B59B6','#2ECC71'],
+      borderWidth:2, borderColor:'#0D1F3C'
+    }]
+  },{scales:{}});
+
+  mk('chart-scatter','scatter',{
+    datasets:[{
+      label:'Stations',
+      data:solarStations.filter(s=>s.eff>0).map(s=>({x:s.temp*2.1,y:s.eff})),
+      backgroundColor:'rgba(0,191,255,.7)', pointRadius:6
+    }]
+  },{scales:{
+    x:{...CHART_DEFAULTS.scales.x,title:{display:true,text:'Irradiance (W/m²)',color:'#7A9BBF'}},
+    y:{...CHART_DEFAULTS.scales.y,min:80,max:95,title:{display:true,text:'Efficiency (%)',color:'#7A9BBF'}}
+  }});
+}
+
+/* =========================================
+   METRIC CHARTS
+   ========================================= */
+function initMetricCharts(){
+  window._metricsInit=true;
+  mk('chart-temp','bar',{
+    labels:solarStations.slice(0,8).map(s=>s.id),
+    datasets:[{
+      label:'Panel Temp (°C)', data:solarStations.slice(0,8).map(s=>s.temp),
+      backgroundColor:d=>{ const v=d.raw; return v>50?'rgba(255,107,53,.8)':v>45?'rgba(245,166,35,.8)':'rgba(0,191,255,.8)'; },
+      borderRadius:4
+    }]
+  });
+
+  mk('chart-bat','horizontalBar',{
+    labels:solarStations.filter(s=>s.storage>0).map(s=>s.id),
+    datasets:[{
+      label:'Battery %',
+      data:solarStations.filter(s=>s.storage>0).map(s=>s.storage),
+      backgroundColor:'rgba(0,229,160,.7)', borderRadius:4
+    }]
+  },{indexAxis:'y',scales:{...CHART_DEFAULTS.scales,x:{...CHART_DEFAULTS.scales.x,max:100}}});
+
+  mk('chart-env','radar',{
+    labels:['Sunshine\nHours','Wind\nSpeed','Humidity','Dust\nIndex','Temp\nIdeal','UV\nIndex'],
+    datasets:[{
+      label:'Today',
+      data:[88,55,40,30,72,80],
+      borderColor:'#00E5A0', backgroundColor:'rgba(0,229,160,.1)', pointBackgroundColor:'#00E5A0'
+    },{
+      label:'Monthly Avg',
+      data:[82,48,45,38,68,75],
+      borderColor:'#00BFFF', backgroundColor:'rgba(0,191,255,.08)', pointBackgroundColor:'#00BFFF'
+    }]
+  },{scales:{}});
+}
+
+/* =========================================
+   SIMULATION
+   ========================================= */
+function runSimulation(){
+  const cloud=+document.getElementById('sim-cloud').value;
+  const dust=+document.getElementById('sim-dust').value;
+  const popInc=+document.getElementById('sim-pop').value;
+  const indInc=+document.getElementById('sim-ind').value;
+  const evLoad=+document.getElementById('sim-ev').value;
+  const newCap=+document.getElementById('sim-newcap').value;
+  const storCap=+document.getElementById('sim-stor').value;
+
+  const baseProd=214.6;
+  const weatherFactor=1-(cloud/100)*0.7-(dust/100)*0.5;
+  const simProd=Math.max(0,baseProd*weatherFactor+newCap*0.88).toFixed(1);
+  const demandInc=(popInc+indInc+evLoad)/100;
+  const baseDemand=198;
+  const simDemand=(baseDemand*(1+demandInc)).toFixed(1);
+  const surplus=(simProd-simDemand).toFixed(1);
+  const storUtil=Math.min(100,(+surplus>0?45+surplus/storCap*50:30)).toFixed(0);
+
+  document.getElementById('sim-output').style.display='block';
+  document.getElementById('sim-time').textContent=new Date().toLocaleTimeString();
+
+  const rg=document.getElementById('sim-results-grid');
+  rg.innerHTML=`
+    <div class="kpi-card glass ${+simProd>+simDemand?'green':'amber'}" style="padding:1rem">
+      <div class="kpi-label">Simulated Production</div>
+      <div class="kpi-value" style="font-size:1.3rem">${simProd} MW</div>
+    </div>
+    <div class="kpi-card glass amber" style="padding:1rem">
+      <div class="kpi-label">Simulated Demand</div>
+      <div class="kpi-value" style="font-size:1.3rem">${simDemand} MW</div>
+    </div>
+    <div class="kpi-card glass ${+surplus>0?'green':'amber'}" style="padding:1rem">
+      <div class="kpi-label">Surplus / Deficit</div>
+      <div class="kpi-value" style="font-size:1.3rem">${+surplus>0?'+':''}${surplus} MW</div>
+    </div>
+    <div class="kpi-card glass blue" style="padding:1rem">
+      <div class="kpi-label">Storage Utilization</div>
+      <div class="kpi-value" style="font-size:1.3rem">${storUtil}%</div>
+    </div>`;
+
+  const simC=document.getElementById('chart-sim');
+  if(window._simChart) window._simChart.destroy();
+  window._simChart=new Chart(simC,{type:'bar',data:{
+    labels:['Baseline Production','Sim Production','Baseline Demand','Sim Demand'],
+    datasets:[{
+      label:'MW',
+      data:[baseProd,+simProd,baseDemand,+simDemand],
+      backgroundColor:['rgba(0,191,255,.5)','rgba(0,229,160,.7)','rgba(245,166,35,.5)','rgba(255,107,53,.7)'],
+      borderRadius:5
+    }]
+  },options:{...CHART_DEFAULTS,plugins:{...CHART_DEFAULTS.plugins,legend:{display:false}}}});
+}
+</script>
+</body>
+</html>
